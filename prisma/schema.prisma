@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model user {
+  user_id               Int                     @id @default(autoincrement())
+  first_name            String                  @db.VarChar(50)
+  last_name             String                  @db.VarChar(50)
+  email                 String                  @unique(map: "email") @db.VarChar(50)
+  password              String                  @db.VarChar(100)
+  user_type_id          Int
+  partner_evolution_log partner_evolution_log[]
+  user_type             user_type               @relation(fields: [user_type_id], references: [user_type_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_user_type_id")
+
+  @@index([user_type_id], map: "FK_user_type_id")
+}
+
+model user_type {
+  user_type_id Int    @id
+  type_name    String @db.VarChar(50)
+  privilege    String @db.VarChar(50)
+  user         user[]
+}
+
+model partner_evolution_log {
+  log_id                  Int       @id @default(autoincrement())
+  partner_id              Int
+  previous_level_id       Int?
+  new_level_id            Int?
+  previous_partner_status String?   @db.VarChar(50)
+  new_partner_status      String?   @db.VarChar(50)
+  update_date             DateTime? @db.Date
+  update_type             String?   @db.VarChar(50)
+  user_id                 Int
+  partner                 partner   @relation(fields: [partner_id], references: [partner_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_partner_id")
+  user                    user      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_user_id")
+
+  @@index([user_id], map: "user_id")
+  @@index([partner_id], map: "FK_partner_id_log_id")
+}
+
+model partner {
+  partner_id                        Int                                 @id
+  partner_level_id                  Int
+  creation_date                     DateTime                            @db.Date
+  partner_first_name                String                              @db.VarChar(50)
+  partner_last_name                 String                              @db.VarChar(50)
+  partner_cpf_number                Float                               @db.Float
+  partner_email                     String                              @db.VarChar(50)
+  partner_phone                     Float                               @db.Float
+  partner_password                  String                              @db.VarChar(100)
+  partner_status                    String                              @db.VarChar(50)
+  partner_adress_street_name        String                              @db.VarChar(50)
+  partner_adress_street_number      Int
+  partner_adress_street_complement  String                              @db.VarChar(50)
+  partner_adress_neighborhood       String                              @db.VarChar(50)
+  partner_adress_city               String                              @db.VarChar(50)
+  partner_adress_state              String                              @db.VarChar(50)
+  partner_adress_country            String                              @default("Brazil") @db.VarChar(50)
+  partner_adress_postal_code        Float                               @db.Float
+  partner_avatar                    String                              @db.VarChar(50)
+  partner_level                     partner_level                       @relation(fields: [partner_level_id], references: [partner_level_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_partner_level_id")
+  partner_evolution_log             partner_evolution_log[]
+  partner_payment                   partner_payment?
+  payment_log                       payment_log?
+  user_social_network               user_social_network?
+  user_social_network_evolution_log user_social_network_evolution_log[]
+
+  @@index([partner_level_id], map: "FK_partner_level_id")
+}
+
+model partner_level {
+  partner_level_id Int       @id @unique(map: "partner_level_id")
+  level_name       String    @db.VarChar(50)
+  update_type      String    @db.VarChar(50)
+  avatar_img       String    @db.VarChar(100)
+  status_level     String    @db.VarChar(50)
+  partner          partner[]
+}
+
+model social_network {
+  social_network_id                 Int                                 @id
+  social_network_name               String                              @db.VarChar(50)
+  social_network_user_url_base      String                              @db.VarChar(50)
+  social_network_icon               String                              @db.VarChar(50)
+  status                            String
+  user_social_network               user_social_network[]
+  user_social_network_evolution_log user_social_network_evolution_log[]
+}
+
+model user_social_network {
+  partner_id                       Int            @unique(map: "partner_id")
+  social_network_id                Int
+  partner_social_network_user_name String         @db.VarChar(50)
+  partner_social_network_user_url  String         @db.VarChar(100)
+  creation_date                    DateTime       @db.Date
+  status                           String
+  partner                          partner        @relation(fields: [partner_id], references: [partner_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_partner_id_user")
+  social_network                   social_network @relation(fields: [social_network_id], references: [social_network_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_social_network")
+
+  @@index([social_network_id], map: "FK_social_network")
+}
+
+model partner_payment {
+  partner_id                       Int     @id
+  beneficiary_type                 String  @db.VarChar(50)
+  beneficiary_cpf_number           String  @db.VarChar(50)
+  beneficiary_rg_number            String  @db.VarChar(50)
+  beneficiary_first_name           String  @db.VarChar(50)
+  beneficiary_last_name            String  @db.VarChar(50)
+  beneficiary_cnpj_number          String? @db.VarChar(50)
+  beneficiary_company_name         String? @db.VarChar(50)
+  beneficiary_company_fantasy_name String? @db.VarChar(50)
+  partner_pis_number               String  @db.VarChar(50)
+  bank_name                        String  @db.VarChar(50)
+  bank_account_type                String
+  bank_agency_number               Int
+  bank_agency_digit                Int?
+  bank_account_number              Int
+  bank_account_digit               Int?
+  payment_pix_type                 String
+  payment_pix_key                  String  @db.VarChar(50)
+  partner                          partner @relation(fields: [partner_id], references: [partner_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_partner_id_partner")
+}
+
+model payment_log {
+  partner_id                       Int      @id
+  payment_date                     DateTime @db.Date
+  payment_value                    Float    @default(0) @db.Float
+  payment_status                   String   @db.VarChar(50)
+  beneficiary_type                 String   @db.VarChar(50)
+  beneficiary_cpf_number           String   @db.VarChar(50)
+  beneficiary_rg_number            String   @db.VarChar(50)
+  beneficiary_first_name           String   @db.VarChar(50)
+  beneficiary_last_name            String   @db.VarChar(50)
+  beneficiary_cnpj_number          String?  @db.VarChar(50)
+  beneficiary_company_name         String?  @db.VarChar(50)
+  beneficiary_company_fantasy_name String?  @db.VarChar(50)
+  partner_pis_number               String   @db.VarChar(50)
+  bank_name                        String   @db.VarChar(50)
+  bank_account_type                String
+  bank_agency_number               Int
+  bank_agency_digit                Int?
+  bank_account_number              Int
+  bank_account_digit               Int?
+  payment_pix_type                 String
+  payment_pix_key                  String   @db.VarChar(50)
+  partner                          partner  @relation(fields: [partner_id], references: [partner_id], onDelete: NoAction, onUpdate: NoAction, map: "payment_log_ibfk_1")
+}
+
+model user_social_network_evolution_log {
+  log_social_evolution_id Int            @id @default(autoincrement())
+  partner_id              Int
+  social_network_id       Int
+  update_date             DateTime       @db.Date
+  followers               Int
+  partner                 partner        @relation(fields: [partner_id], references: [partner_id], onDelete: NoAction, onUpdate: NoAction, map: "user_social_network_evolution_log_ibfk_1")
+  social_network          social_network @relation(fields: [social_network_id], references: [social_network_id], onDelete: NoAction, onUpdate: NoAction, map: "user_social_network_evolution_log_ibfk_2")
+
+  @@index([social_network_id], map: "FK_social_network")
+  @@index([partner_id], map: "FK_partner_id_user_social_log")
+}
